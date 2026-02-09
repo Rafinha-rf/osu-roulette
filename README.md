@@ -8,7 +8,7 @@
 
 O **osu! Roulette** resolve o clássico problema de "o que eu jogo agora?", permitindo que os jogadores roletem mapas aleatórios baseados em critérios específicos como **Dificuldade (Estrelas)**, **Modo de Jogo** e **Estilos de Mapa** (Farm, Stream, Tech, etc).
 
-![Preview Screenshot](./assets/osu-roulette-screen.png)
+![Preview Screenshot](/assets/osu-roulette-screen.png)
 
 ## ✨ Funcionalidades
 
