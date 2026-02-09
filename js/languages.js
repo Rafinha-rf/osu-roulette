@@ -1,0 +1,93 @@
+export const translations = {
+    pt: {
+        title: "OSU! ROULETTE",
+        subtitle: "Clique nos círculos... no ritmo!",
+        
+        searchLabel: "Mapper / Busca",
+        searchPlaceholder: "Ex: Sotarks...",
+        modeLabel: "Modo",
+        statusLabel: "Status",
+        styleLabel: "Estilo / Tech",
+        starsMin: "★ Mín",
+        starsMax: "★ Máx",
+        
+        opt_all: "Aleatório",
+        opt_ranked: "Ranked",
+        opt_loved: "Loved",
+        opt_graveyard: "Graveyard",
+        opt_pending: "Pending",
+        
+        style_farm: "Farm (PP)",
+        style_stream: "Streams",
+        style_jump: "Jumps / Mira",
+        style_tech: "Tech / Alternado",
+        style_speed: "Speed / Burst",
+        style_stamina: "Stamina",
+        style_old: "Old School (2007-12)",
+        style_long: "Marathon (+4min)",
+
+
+        spinBtn: "GIRAR!",
+        
+        label_mapper: "Mapper",
+        label_bpm: "BPM",
+        label_length: "Duração",
+        label_ranked: "Ranked",
+        btn_download: "Baixar .osz",
+
+        historyTitle: "DROPS RECENTES",
+        clearHistory: "Limpar",
+        emptyHistory: "Nenhum drop recente.",
+        
+        modalTitle: "Ops!",
+        modalBtn: "Entendido",
+        
+        err_min_max: "A dificuldade mínima não pode ser maior que a máxima!",
+        err_not_found: "Nenhum mapa encontrado! Tente outros filtros."
+    },
+    en: {
+        title: "OSU! ROULETTE",
+        subtitle: "Click the circles... to the beat!",
+        
+        searchLabel: "Mapper / Search",
+        searchPlaceholder: "Ex: Sotarks...",
+        modeLabel: "Mode",
+        statusLabel: "Status",
+        styleLabel: "Style / Tech",
+        starsMin: "★ Min",
+        starsMax: "★ Max",
+        
+        opt_all: "Random",
+        opt_ranked: "Ranked",
+        opt_loved: "Loved",
+        opt_graveyard: "Graveyard",
+        opt_pending: "Pending",
+        
+        style_farm: "Farm (PP)",
+        style_stream: "Streams",
+        style_jump: "Jumps / Aim",
+        style_tech: "Tech / Alternate",
+        style_speed: "Speed / Burst",
+        style_stamina: "Stamina",
+        style_old: "Old School (2007-12)",
+        style_long: "Marathon (+4min)",
+
+        spinBtn: "SPIN!",
+        
+        label_mapper: "Mapper",
+        label_bpm: "BPM",
+        label_length: "Length",
+        label_ranked: "Ranked",
+        btn_download: "Download .osz",
+        
+        historyTitle: "RECENT DROPS",
+        clearHistory: "Clear",
+        emptyHistory: "No recent drops.",
+    
+        modalTitle: "Oops!",
+        modalBtn: "Got it",
+
+        err_min_max: "Min difficulty cannot be greater than Max difficulty!",
+        err_not_found: "No maps found! Try different filters."
+    }
+};

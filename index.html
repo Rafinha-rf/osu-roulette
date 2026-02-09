@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html class="dark" lang="pt-br">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta name="theme-color" content="#0a0a0c">
+    <title>osu! Roulette</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23ff66aa'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-weight='bold'>osu!</text></svg>">
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ff66aa", 
+                        "primary-dark": "#e05594", 
+                        "background-dark": "#0a0b14", 
+                        "card-dark": "#141625", 
+                        "card-hover": "#1a1d2e",
+                        "diff-easy": "#88b300",
+                        "diff-normal": "#66ccff",
+                        "diff-hard": "#ffcc22",
+                        "diff-insane": "#ff66aa",
+                        "diff-expert": "#8800ff",
+                    },
+                    fontFamily: { "display": ["Plus Jakarta Sans", "sans-serif"] },
+                },
+            },
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer base {
+            body { 
+                @apply bg-background-dark text-slate-200 antialiased font-display; 
+            }
+        }
+
+        @layer components {
+            .custom-select {
+                @apply appearance-none bg-card-dark border border-white/[0.08] rounded-xl px-4 py-2 pr-10 text-sm outline-none text-slate-200 cursor-pointer transition-all duration-300 hover:border-primary/50;
+                @apply focus:ring-2 focus:ring-primary focus:border-primary focus:shadow-[0_0_15px_rgba(255,102,170,0.3)];
+                
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: right 0.75rem center;
+                background-size: 1rem;
+            }
+
+            .custom-select option {
+                @apply bg-card-dark text-slate-200;
+            }
+
+            input[type="text"] {
+                @apply bg-card-dark border border-white/[0.08] rounded-xl px-4 py-2 text-sm outline-none text-slate-200 transition-all duration-300 hover:border-primary/50;
+                @apply focus:ring-2 focus:ring-primary focus:border-primary focus:shadow-[0_0_15px_rgba(255,102,170,0.3)];
+            }
+            .osu-triangle {
+                @apply absolute opacity-[0.03] bottom-[-100px];
+                width: 0;
+                height: 0;
+                border-left: 50px solid transparent;
+                border-right: 50px solid transparent;
+                border-bottom: 86px solid white;
+                animation: floatUp 15s linear infinite;
+                filter: drop-shadow(0 0 10px rgba(255,255,255,0.2));
+            }
+
+            .t-1 { left: 10%; animation-duration: 12s; transform: scale(0.8); }
+            .t-2 { left: 25%; animation-duration: 18s; transform: scale(1.2) rotate(15deg); animation-delay: 2s; }
+            .t-3 { left: 40%; animation-duration: 15s; transform: scale(0.5); animation-delay: 5s; }
+            .t-4 { left: 55%; animation-duration: 20s; transform: scale(1.0) rotate(-10deg); }
+            .t-5 { left: 70%; animation-duration: 14s; transform: scale(0.7); animation-delay: 1s; }
+            .t-6 { left: 85%; animation-duration: 22s; transform: scale(1.5) rotate(5deg); animation-delay: 3s; }
+            .t-7 { left: 15%; animation-duration: 25s; transform: scale(0.4); animation-delay: 7s; }
+            .t-8 { left: 60%; animation-duration: 19s; transform: scale(0.9) rotate(20deg); animation-delay: 4s; }
+
+            @keyframes floatUp {
+                0% { bottom: -150px; opacity: 0; }
+                10% { opacity: 0.04; }
+                90% { opacity: 0.04; }
+                100% { bottom: 110vh; opacity: 0; transform: rotate(45deg); }
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center overflow-x-hidden">
+    <div class="fixed inset-0 -z-50 overflow-hidden pointer-events-none">
+        <div class="absolute inset-0 bg-gradient-to-b from-[#11131f] via-[#0e0f1a] to-[#050505]"></div>
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#000000_100%)] opacity-60"></div>
+
+        <div class="osu-triangle t-1"></div>
+        <div class="osu-triangle t-2"></div>
+        <div class="osu-triangle t-3"></div>
+        <div class="osu-triangle t-4"></div>
+        <div class="osu-triangle t-5"></div>
+        <div class="osu-triangle t-6"></div>
+        <div class="osu-triangle t-7"></div>
+        <div class="osu-triangle t-8"></div>
+    </div>    
+
+    <header class="w-full max-w-[1500px] py-6 px-4 md:px-6 flex flex-col xl:flex-row items-center justify-between gap-6 relative z-50">
+            
+        <div class="w-full flex justify-end xl:w-auto xl:order-3 items-center gap-3 z-[100]">
+            <div class="flex gap-2 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/5 shadow-lg">
+                <button onclick="setLanguage('pt')" class="hover:scale-110 transition-transform opacity-80 hover:opacity-100 grayscale hover:grayscale-0 text-lg">🇧🇷</button>
+                <button onclick="setLanguage('en')" class="hover:scale-110 transition-transform opacity-80 hover:opacity-100 grayscale hover:grayscale-0 text-lg">🇺🇸</button>
+            </div>
+
+            <button id="mute-btn" class="bg-[#16161e]/90 backdrop-blur-md border border-primary/50 p-3 rounded-full hover:border-primary hover:bg-primary/10 transition-all shadow-xl flex items-center justify-center group">
+                <span id="mute-icon" class="material-symbols-outlined text-primary group-hover:scale-110 transition-transform text-xl">volume_up</span>
+            </button>
+        </div>
+        
+        <div class="flex-shrink-0 text-center xl:text-left min-w-fit relative z-10 xl:order-1">
+            <h1 data-i18n="title" class="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-br from-white via-primary to-primary tracking-tighter italic leading-none whitespace-nowrap drop-shadow-[0_0_15px_rgba(255,102,170,0.3)]">
+                OSU! ROULETTE
+            </h1>
+            <p data-i18n="subtitle" class="text-slate-500 text-xs md:text-sm font-bold uppercase tracking-widest mt-1 whitespace-nowrap">
+                Click the circles... to the beat!
+            </p>
+        </div>
+        
+        <div class="w-full xl:w-auto xl:flex-1 flex flex-wrap justify-center gap-3 items-end relative z-10 mt-4 xl:mt-0 xl:order-2">
+            
+            <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 min-w-[160px] max-w-[200px]">
+                <label data-i18n="searchLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Mapper / Search</label>
+                <input type="text" id="search-filter" placeholder="Ex: Sotarks..." class="w-full h-[40px] placeholder:text-slate-600">
+            </div>
+
+            <div class="flex flex-col gap-1 w-1/2 sm:w-[120px]">
+                <label data-i18n="modeLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Modo</label>
+                <select id="mode-filter" class="custom-select w-full h-[40px]">
+                    <option value="0">Standard</option>
+                    <option value="1">Taiko</option>
+                    <option value="2">Catch</option>
+                    <option value="3">Mania</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1 w-1/2 sm:w-[130px]">
+                <label data-i18n="statusLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Status</label>
+                <select id="status-filter" class="custom-select w-full h-[40px]">
+                    <option value="ranked" data-i18n="opt_ranked">Ranked</option>
+                    <option value="loved" data-i18n="opt_loved">Loved</option>
+                    <option value="graveyard" data-i18n="opt_graveyard">Graveyard</option>
+                    <option value="pending" data-i18n="opt_pending">Pending</option>
+                </select>
+            </div>
+
+            <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 min-w-[140px]">
+                <label data-i18n="styleLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Estilo / Tech</label>
+                <select id="style-filter" class="custom-select w-full h-[40px]">
+                    <option value="all" data-i18n="opt_all">Aleatório</option>
+                    <option value="farm" data-i18n="style_farm">Farm (PP)</option>
+                    <option value="stream" data-i18n="style_stream">Streams</option>
+                    <option value="jump" data-i18n="style_jump">Jumps / Aim</option>
+                    <option value="tech" data-i18n="style_tech">Tech / Alternate</option>
+                    <option value="speed" data-i18n="style_speed">Speed / Burst</option>
+                    <option value="stamina" data-i18n="style_stamina">Stamina</option>
+                    <option value="old" data-i18n="style_old">Old School (2007-12)</option>
+                    <option value="long" data-i18n="style_long">Marathon (+4min)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <div class="flex flex-col gap-1">
+                    <label data-i18n="starsMin" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">★ Mín</label>
+                    <select id="stars-min" class="custom-select w-20 h-[42px]">
+                        <option value="0">0★</option><option value="1">1★</option><option value="2">2★</option>
+                        <option value="3">3★</option><option value="4" selected>4★</option><option value="5">5★</option>
+                        <option value="6">6★</option><option value="7">7★</option><option value="8">8★</option>
+                    </select>
+                </div>
+                <span class="text-slate-500 mt-4">➔</span>
+                <div class="flex flex-col gap-1">
+                    <label data-i18n="starsMax" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">★ Máx</label>
+                    <select id="stars-max" class="custom-select w-20 h-[42px]">
+                        <option value="10">10★</option><option value="9">9★</option><option value="8">8★</option>
+                        <option value="7">7★</option><option value="6">6★</option><option value="5" selected>5★</option>
+                        <option value="4">4★</option><option value="3">3★</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="w-full max-w-[1400px] flex-1 flex flex-col xl:flex-row items-center justify-center gap-12 p-6 mb-10 mx-auto">
+
+        <div class="relative group flex-shrink-0">
+            <div class="absolute inset-0 bg-primary/20 blur-[100px] rounded-full"></div>          
+            <div class="relative size-64 sm:size-80 md:size-[400px] glassmorphism rounded-full p-4 flex items-center justify-center shadow-2xl shrink-0 transition-all duration-500">
+                <div id="wheel" class="size-full rounded-full border-[6px] border-white/10 roulette-gradient relative shadow-inner transition-transform duration-[4000ms] cubic-bezier(0.15, 0, 0.15, 1)" style="transform: rotate(0deg) translateZ(0);">
+                    <div class="absolute inset-0 flex items-center justify-center overflow-hidden rounded-full opacity-10">
+                        <div class="absolute w-full h-px bg-white rotate-0"></div>
+                        <div class="absolute w-full h-px bg-white rotate-45"></div>
+                        <div class="absolute w-full h-px bg-white rotate-90"></div>
+                        <div class="absolute w-full h-px bg-white rotate-135"></div>
+                        <div class="absolute size-20 rounded-full border border-white/50"></div>
+                    </div>
+                </div>
+                <div class="absolute -top-1 left-1/2 -translate-x-1/2 z-30 w-5 h-7 bg-white rounded-b-full shadow-xl"></div>
+                
+                <button id="spin-button" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-28 sm:size-36 bg-primary text-white rounded-full shadow-[0_0_50px_rgba(255,102,170,0.6)] border-[6px] border-white flex flex-col items-center justify-center z-40 hover:scale-105 active:scale-95 transition-all group">
+                    <span class="text-[40px] sm:text-[50px] font-black leading-none mb-1 drop-shadow-md">osu!</span>
+                    <span data-i18n="spinBtn" class="text-[12px] sm:text-[14px] font-bold uppercase tracking-widest leading-none group-hover:tracking-[0.2em] transition-all">CLICK!</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="w-full xl:max-w-[500px] min-h-[350px] flex items-center perspective-1000">
+            <div id="result-card" class="glassmorphism relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl transition-all duration-700 w-full flex flex-col">
+                
+                <div id="mystery-overlay" class="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0c]">
+                    <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/10 via-[#0a0a0c] to-[#0a0a0c]"></div>
+                    <div class="relative z-10 animate-pulse">
+                        <span class="font-black text-[120px] leading-none text-transparent bg-clip-text bg-gradient-to-b from-white via-primary/50 to-transparent drop-shadow-[0_0_50px_rgba(139,92,246,0.4)] select-none">?</span>
+                    </div>
+                </div>
+
+                <div id="content-layout" class="flex flex-col h-full w-full relative z-0 opacity-0 transition-opacity duration-500">
+                    
+                    <div class="group relative w-full h-48 sm:h-56 flex-shrink-0 bg-black/50 overflow-hidden border-b border-white/10">
+                        <img id="map-bg" src="" alt="Background" class="w-full h-full object-cover object-[center_20%] transition-transform duration-700 group-hover:scale-105 opacity-0">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#16161e] via-transparent to-black/40"></div>
+
+                        <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md px-2 py-1 rounded-lg border border-white/10 flex items-center gap-1.5 shadow-lg z-20">
+                            <span class="material-symbols-outlined text-yellow-400 text-xs">star</span>
+                            <span id="map-stars" class="text-white font-black text-sm">0.00</span>
+                        </div>
+
+                        <button id="preview-btn" class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/20 backdrop-blur-[1px] z-10">
+                            <div class="size-12 rounded-full bg-white/10 border border-white/20 backdrop-blur-md flex items-center justify-center hover:bg-primary hover:border-primary transition-colors shadow-2xl">
+                                <span id="play-icon" class="material-symbols-outlined text-2xl text-white ml-0.5">play_arrow</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div class="flex flex-col flex-1 bg-gradient-to-b from-[#16161e] to-[#0f1016] p-5 relative">
+                        
+                        <div class="mb-4 text-center">
+                            <h2 id="map-title" class="text-lg font-black text-white leading-tight line-clamp-1 mb-0.5" title="Title"></h2>
+                            <p id="map-artist" class="text-slate-400 text-xs font-bold uppercase tracking-wider line-clamp-1"></p>
+                        </div>
+
+                        <div class="grid grid-cols-4 gap-2 mb-5">
+                            <div class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
+                                <span data-i18n="label_mapper" class="text-[9px] text-primary font-black uppercase block mb-0.5">Mapper</span>
+                                <span id="map-mapper" class="text-[10px] text-white font-bold truncate block"></span>
+                            </div>
+                            
+                            <div class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
+                                <span data-i18n="label_bpm" class="text-[9px] text-primary font-black uppercase block mb-0.5">BPM</span>
+                                <span id="map-bpm" class="text-[10px] text-white font-bold block"></span>
+                            </div>
+                            
+                            <div class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
+                                <span data-i18n="label_length" class="text-[9px] text-primary font-black uppercase block mb-0.5">Length</span>
+                                <span id="map-length" class="text-[10px] text-white font-bold block"></span>
+                            </div>
+                            
+                            <div class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
+                                <span data-i18n="label_ranked" class="text-[9px] text-primary font-black uppercase block mb-0.5">Ranked</span>
+                                <span class="text-[10px] text-green-400 font-bold block">✔</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto flex gap-2">
+                            <a id="btn-download" href="#" target="_blank" class="flex-1 bg-primary hover:bg-primary-dark text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-bold shadow-lg shadow-primary/20 active:scale-[0.98] border border-white/10 group">
+                                <span class="material-symbols-outlined group-hover:-translate-y-1 transition-transform text-lg">download</span>
+                                <span data-i18n="btn_download" class="text-sm">Baixar .osz</span>
+                            </a>
+
+                            <a id="btn-website" href="#" target="_blank" class="size-[46px] flex-shrink-0 bg-[#2b2d42] hover:bg-white hover:text-black text-white rounded-xl transition-all flex items-center justify-center shadow-lg border border-white/10 group" title="Ver no site do osu!">
+                                <span class="material-symbols-outlined group-hover:scale-110 transition-transform">public</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <section id="history-section" class="w-full max-w-[1400px] px-6 py-10 border-t border-white/5 mx-auto mb-20">
+        <div class="flex items-center gap-2 mb-8">
+            <span class="material-symbols-outlined text-primary drop-shadow-[0_0_8px_rgba(255,102,170,0.8)]">history</span>
+            
+            <h2 data-i18n="historyTitle" class="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase tracking-widest">
+                Recent Drops
+            </h2>
+            
+            <button id="clear-history" class="text-xs font-bold text-slate-500 hover:text-primary transition-colors flex items-center gap-1 uppercase tracking-widest ml-auto">
+                <span class="material-symbols-outlined text-sm">delete_sweep</span> 
+                <span data-i18n="clearHistory">Clear</span>
+            </button>
+        </div>
+        <div id="history-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <a href="https://github.com/Rafinha-rf" target="_blank" class="fixed bottom-4 left-4 z-50 hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-[#16161e]/80 border border-white/10 backdrop-blur-md shadow-2xl hover:border-primary/50 hover:scale-105 transition-all group cursor-pointer no-underline">
+        <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+            Dev by <span class="text-slate-200 group-hover:text-primary transition-colors">Rafinha</span>
+        </span>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script type="module" src="./js/main.js"></script>
+    
+    <div id="custom-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-sm glassmorphism rounded-3xl p-8 shadow-2xl border-white/10 scale-95 transition-all">
+            <div class="flex flex-col items-center text-center">
+                <div class="size-16 rounded-2xl bg-primary/20 flex items-center justify-center mb-6 text-primary">
+                    <span class="material-symbols-outlined text-4xl">warning</span>
+                </div>
+                <h2 id="modal-title" data-i18n="modalTitle" class="text-xl font-bold text-white mb-2">Ops!</h2>
+                <p id="modal-message" class="text-slate-400 text-sm leading-relaxed mb-8">Error message.</p>
+                <button onclick="closeModal()" data-i18n="modalBtn" class="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20">
+                    Ok
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
