@@ -1,4 +1,7 @@
+import { translations } from './languages.js'; 
+
 const API_BASE = 'https://api.nerinyan.moe/search';
+
 
 export function getDifficultyColor(sr) {
     const stars = parseFloat(sr);
@@ -10,33 +13,66 @@ export function getDifficultyColor(sr) {
     return { color: "#000000", name: "Expert+", text: "white" };
 }
 
+
+const STATUS_CONFIG = {
+    'ranked':    { icon: 'check_circle', color: '#4ade80', key: 'opt_ranked' },
+    'approved':  { icon: 'verified',     color: '#4ade80', key: 'opt_ranked' },
+    'qualified': { icon: 'verified',     color: '#60a5fa', key: 'opt_ranked' },
+    'loved':     { icon: 'favorite',     color: '#ff66aa', key: 'opt_loved' },
+    'graveyard': { icon: 'sentiment_very_dissatisfied', color: '#94a3b8', key: 'opt_graveyard' },
+    'pending':   { icon: 'hourglass_empty', color: '#facc15', key: 'opt_pending' }, 
+    'wip':       { icon: 'construction',    color: '#facc15', key: 'opt_pending' } 
+}
+
 export async function buscarBeatmap(filtros) {
-    const maxAttempts = 3;
+    const maxAttempts = 10;
     let attempt = 0;
     
-    const statusMap = { 'ranked': 'ranked', 'loved': 'loved', 'pending': 'pending', 'graveyard': 'graveyard' };
-    const status = statusMap[filtros.status] || 'ranked';
+    const statusMap = { 'ranked': 'ranked', 'loved': 'loved', 'pending': 'pending', 'graveyard': 'graveyard'};
 
     while (attempt < maxAttempts) {
+        const temQuery = filtros.query && filtros.query.trim() !== "";
         let pageToTry;
-        
-        if ((filtros.query && filtros.query.trim() !== "") || (filtros.style && filtros.style !== 'all')) {
-            pageToTry = attempt; 
-        } else {
-            pageToTry = Math.floor(Math.random() * 100);
+
+        if (temQuery) {
+            pageToTry = 0; 
+        } 
+        else if (filtros.style && filtros.style !== 'all') {
+            pageToTry = attempt;
+        } 
+        else {
+            pageToTry = Math.floor(Math.random() * 50);
         }
 
-        console.log(`Tentativa ${attempt + 1}: Estilo ${filtros.style} | Pág ${pageToTry} (Buscando 100 mapas)...`);
+        let statusToSearch;
+
+        if (filtros.status === 'all') {
+            const statusRoulette = [
+                'ranked', 'ranked',
+                'graveyard', 'graveyard',
+                'loved',
+                'pending'
+            ];
+
+            if (temQuery) {
+                 const statusList = ['ranked', 'graveyard', 'loved', 'pending', 'graveyard', 'ranked'];
+                 statusToSearch = statusList[attempt % statusList.length];
+            } else {
+                statusToSearch = statusRoulette[Math.floor(Math.random() * statusRoulette.length)];
+            }
+        } else {
+            statusToSearch = statusMap[filtros.status] || 'ranked';
+        }
+
+        const logStatus = statusToSearch ? `[${statusToSearch}]` : "[Padrão]";
+        console.log(`Tentativa ${attempt + 1}: Status ${logStatus} | Query: "${filtros.query}" | Pág: ${pageToTry}`);
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000);
+            const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
             let queryParts = [];
-
-            if (filtros.query && filtros.query.trim() !== "") {
-                queryParts.push(filtros.query);
-            }
+            if (temQuery) queryParts.push(filtros.query);
 
             if (filtros.style && filtros.style !== 'all') {
                 switch (filtros.style) {
@@ -54,40 +90,54 @@ export async function buscarBeatmap(filtros) {
             const params = new URLSearchParams({
                 q: queryParts.join(' '),
                 m: filtros.mode || 0,
-                s: status,
                 p: pageToTry,
-                pageSize: 100
+                pageSize: 50
             });
+
+            if (statusToSearch) {
+                params.append('s', statusToSearch);
+            }
 
             const response = await fetch(`${API_BASE}?${params.toString()}`, { signal: controller.signal });
             clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                console.warn("API Error / Timeout");
-                attempt++;
-                continue; 
-            }
+            if (!response.ok) { attempt++; continue; }
             
             const json = await response.json();
             
             if (!json || json.length === 0) {
-                if (filtros.query || filtros.style !== 'all') break; 
+
+                if (temQuery && filtros.status !== 'all') break; 
+                
+                if (!temQuery && filtros.style !== 'all') break;
+
                 attempt++;
                 continue;
             }
 
             const candidatos = json.filter(mapSet => {
                 if (!mapSet.beatmaps) return false;
+                
+                if (filtros.style === 'old') {
+                    const dateStr = mapSet.approved_date || mapSet.last_updated;
+                    if (dateStr && new Date(dateStr).getFullYear() > 2012) return false;
+                }
 
-                const hasValidDiff = mapSet.beatmaps.some(diff => 
-                    diff.difficulty_rating >= parseFloat(filtros.minSR) && 
-                    diff.difficulty_rating <= parseFloat(filtros.maxSR) &&
-                    diff.mode_int == (filtros.mode || 0)
-                );
+                const hasValidDiff = mapSet.beatmaps.some(diff => {
+                    const matchSR = diff.difficulty_rating >= parseFloat(filtros.minSR) && 
+                                    diff.difficulty_rating <= parseFloat(filtros.maxSR);
+                    const matchMode = diff.mode_int == (filtros.mode || 0);
+                    
+                    if (!matchSR || !matchMode) return false;
+
+                    if (filtros.style === 'long' && diff.total_length < 240) return false;
+
+                    return true;
+                });
 
                 if (!hasValidDiff) return false;
 
-                if (filtros.query && filtros.query.trim() !== "") {
+                if (temQuery) {
                     const q = filtros.query.toLowerCase();
                     const matchCreator = mapSet.creator.toLowerCase().includes(q);
                     const matchArtist = mapSet.artist.toLowerCase().includes(q);
@@ -101,12 +151,11 @@ export async function buscarBeatmap(filtros) {
             });
 
             if (candidatos.length > 0) {
-                console.log(`Sucesso! ${candidatos.length} mapas encontrados (de 100 baixados).`);
+                console.log(`Sucesso! ${candidatos.length} mapas encontrados.`);
                 const mapSet = candidatos[Math.floor(Math.random() * candidatos.length)];
-                return normalizeBeatmap(mapSet, filtros.minSR, filtros.maxSR, filtros.query);
+                return normalizeBeatmap(mapSet, filtros.minSR, filtros.maxSR, filtros.query, filtros.style);
             }
             
-            console.log("Baixamos 100 mapas, mas nenhum serviu.");
             attempt++;
 
         } catch (error) {
@@ -118,27 +167,25 @@ export async function buscarBeatmap(filtros) {
     return null; 
 }
 
-function normalizeBeatmap(mapSet, minSR, maxSR, query = "") {
+function normalizeBeatmap(mapSet, minSR, maxSR, query = "", style = "") {
     let targetDiff = null;
     const q = query ? query.toLowerCase() : "";
 
-    if (q) {
-        targetDiff = mapSet.beatmaps.find(child => 
-            child.difficulty_rating >= minSR && 
-            child.difficulty_rating <= maxSR &&
-            child.mode_int == 0 &&
-            child.version.toLowerCase().includes(q)
-        );
+    const validDiffs = mapSet.beatmaps.filter(child => 
+        child.difficulty_rating >= minSR && 
+        child.difficulty_rating <= maxSR &&
+        child.mode_int == 0
+    ).sort((a, b) => b.difficulty_rating - a.difficulty_rating);
+
+    if (style === 'long') {
+        targetDiff = validDiffs.find(d => d.total_length >= 240);
+    } 
+    else if (q) {
+        targetDiff = validDiffs.find(d => d.version.toLowerCase().includes(q));
     }
 
-    if (!targetDiff) {
-        const validDiffs = mapSet.beatmaps.filter(child => 
-            child.difficulty_rating >= minSR && 
-            child.difficulty_rating <= maxSR &&
-            child.mode_int == 0
-        ).sort((a, b) => b.difficulty_rating - a.difficulty_rating);
-        
-        if (validDiffs.length > 0) targetDiff = validDiffs[0];
+    if (!targetDiff && validDiffs.length > 0) {
+        targetDiff = validDiffs[0];
     }
 
     if (!targetDiff) targetDiff = mapSet.beatmaps[0];
@@ -161,9 +208,10 @@ function normalizeBeatmap(mapSet, minSR, maxSR, query = "") {
         diffColor: diffInfo.color,
         diffTextColor: diffInfo.text,
         diffName: targetDiff.version,
-        status: mapSet.ranked, 
+        status: mapSet.status,
         url: `https://osu.ppy.sh/beatmapsets/${mapSet.id}`,
-        download: `https://api.nerinyan.moe/d/${mapSet.id}`, 
+        download: `https://api.nerinyan.moe/d/${mapSet.id}`,
+        directLink: `osu://b/${targetDiff.id}` 
     };
 }
 
@@ -183,8 +231,13 @@ export function atualizarInterface(mapa) {
     const bpm = document.getElementById('map-bpm');
     const length = document.getElementById('map-length');
     const stars = document.getElementById('map-stars');
+    
+    const statusIcon = document.getElementById('status-icon');
+    const statusText = document.getElementById('status-text');
+    
     const btnDl = document.getElementById('btn-download');
-    const btnWeb = document.getElementById('btn-website'); 
+    const btnWeb = document.getElementById('btn-website');
+    const btnOpen = document.getElementById('btn-open'); 
 
     const contentLayout = document.getElementById('content-layout');
     const mystery = document.getElementById('mystery-overlay');
@@ -200,11 +253,24 @@ export function atualizarInterface(mapa) {
     starContainer.style.backgroundColor = mapa.diffColor;
     starContainer.style.color = mapa.diffTextColor || 'white';
     
-    const starIcon = starContainer.querySelector('.material-symbols-outlined');
-    if(starIcon) starIcon.style.color = mapa.diffTextColor || 'white';
+    const starIconElem = starContainer.querySelector('.material-symbols-outlined');
+    if(starIconElem) starIconElem.style.color = mapa.diffTextColor || 'white';
     
+    const config = STATUS_CONFIG[mapa.status] || STATUS_CONFIG['graveyard'];
+    
+    statusIcon.innerText = config.icon;
+    statusIcon.style.color = config.color;
+    
+    const currentLang = localStorage.getItem('osu_roulette_lang') || 'pt';
+
+    let translatedStatus = translations[currentLang][config.key] || mapa.status;
+    statusText.innerText = translatedStatus;
+    statusText.style.color = config.color;
+
     btnDl.href = mapa.download;
-    if (btnWeb) btnWeb.href = mapa.url; 
+    if (btnWeb) btnWeb.href = mapa.url;
+    
+    if (btnOpen) btnOpen.href = mapa.directLink;
 
     const downloadingImage = new Image();
     downloadingImage.src = mapa.cover;

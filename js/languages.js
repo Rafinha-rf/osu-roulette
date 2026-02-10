@@ -43,7 +43,14 @@ export const translations = {
         modalBtn: "Entendido",
         
         err_min_max: "A dificuldade mínima não pode ser maior que a máxima!",
-        err_not_found: "Nenhum mapa encontrado! Tente outros filtros."
+        err_not_found: "Nenhum mapa encontrado! Tente outros filtros.",
+
+        opt_any: "Qualquer",
+        opt_ranked: "Ranqueado",
+        opt_loved: "Loved",
+        opt_graveyard: "Cemitério",
+        opt_pending: "Pendente",
+
     },
     en: {
         title: "OSU! ROULETTE",
@@ -88,6 +95,12 @@ export const translations = {
         modalBtn: "Got it",
 
         err_min_max: "Min difficulty cannot be greater than Max difficulty!",
-        err_not_found: "No maps found! Try different filters."
+        err_not_found: "No maps found! Try different filters.",
+
+        opt_any: "Any",
+        opt_ranked: "Ranked",
+        opt_loved: "Loved",
+        opt_graveyard: "Graveyard",
+        opt_pending: "Pending",
     }
 };

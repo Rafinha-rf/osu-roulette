@@ -4,6 +4,18 @@
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <meta name="theme-color" content="#0a0a0c">
+    <meta name="description" content="A modern beatmap randomizer for osu! with filters for Farm, Stream, Tech and more.">
+    <meta name="keywords" content="osu, beatmap, randomizer, roulette, farm, stream, tech, pp">
+    <meta name="author" content="Rafinha">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://rafinha-rf.github.io/osu-roulette/"> <meta property="og:title" content="osu! Roulette 🎰">
+    <meta property="og:description" content="Discover new maps! Filters for Ranked, Graveyard, Farm, Stream & Tech.">
+    <meta property="og:image" content="https://rafinha-rf.github.io/osu-roulette/assets/preview.png"> <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://rafinha-rf.github.io/osu-roulette/">
+    <meta property="twitter:title" content="osu! Roulette 🎰">
+    <meta property="twitter:description" content="Discover new maps! Filters for Ranked, Graveyard, Farm, Stream & Tech.">
+    <meta property="twitter:image" content="https://rafinha-rf.github.io/osu-roulette/assets/preview.png">
     <title>osu! Roulette</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='45' fill='%23ff66aa'/><text x='50' y='65' font-size='50' text-anchor='middle' fill='white' font-weight='bold'>osu!</text></svg>">
     
@@ -143,9 +155,10 @@
                 </select>
             </div>
 
-            <div class="flex flex-col gap-1 w-1/2 sm:w-[130px]">
+            <div class="flex flex-col gap-1 w-1/2 sm:w-[150px]">
                 <label data-i18n="statusLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Status</label>
                 <select id="status-filter" class="custom-select w-full h-[40px]">
+                   <option value="all" data-i18n="opt_any" selected>Qualquer</option>
                     <option value="ranked" data-i18n="opt_ranked">Ranked</option>
                     <option value="loved" data-i18n="opt_loved">Loved</option>
                     <option value="graveyard" data-i18n="opt_graveyard">Graveyard</option>
@@ -156,7 +169,7 @@
             <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 min-w-[140px]">
                 <label data-i18n="styleLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Estilo / Tech</label>
                 <select id="style-filter" class="custom-select w-full h-[40px]">
-                    <option value="all" data-i18n="opt_all">Aleatório</option>
+                    <option value="all" data-i18n="opt_any">Qualquer</option>
                     <option value="farm" data-i18n="style_farm">Farm (PP)</option>
                     <option value="stream" data-i18n="style_stream">Streams</option>
                     <option value="jump" data-i18n="style_jump">Jumps / Aim</option>
@@ -171,7 +184,7 @@
             <div class="flex items-center gap-2">
                 <div class="flex flex-col gap-1">
                     <label data-i18n="starsMin" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">★ Mín</label>
-                    <select id="stars-min" class="custom-select w-20 h-[42px]">
+                    <select id="stars-min" class="custom-select w-24 h-[42px]">
                         <option value="0">0★</option><option value="1">1★</option><option value="2">2★</option>
                         <option value="3">3★</option><option value="4" selected>4★</option><option value="5">5★</option>
                         <option value="6">6★</option><option value="7">7★</option><option value="8">8★</option>
@@ -180,7 +193,7 @@
                 <span class="text-slate-500 mt-4">➔</span>
                 <div class="flex flex-col gap-1">
                     <label data-i18n="starsMax" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">★ Máx</label>
-                    <select id="stars-max" class="custom-select w-20 h-[42px]">
+                    <select id="stars-max" class="custom-select w-24 h-[42px]">
                         <option value="10">10★</option><option value="9">9★</option><option value="8">8★</option>
                         <option value="7">7★</option><option value="6">6★</option><option value="5" selected>5★</option>
                         <option value="4">4★</option><option value="3">3★</option>
@@ -265,19 +278,26 @@
                                 <span id="map-length" class="text-[10px] text-white font-bold block"></span>
                             </div>
                             
-                            <div class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
-                                <span data-i18n="label_ranked" class="text-[9px] text-primary font-black uppercase block mb-0.5">Ranked</span>
-                                <span class="text-[10px] text-green-400 font-bold block">✔</span>
+                            <div id="status-container" class="bg-white/5 rounded-lg p-1.5 border border-white/5 text-center group-hover:border-primary/30 transition-colors">
+                                <span id="status-title" class="text-[9px] text-primary font-black uppercase block mb-0.5">STATUS</span>
+                                
+                                <div class="flex items-center justify-center gap-1">
+                                    <span id="status-icon" class="material-symbols-outlined text-sm">help</span>
+                                    <span id="status-text" class="text-[10px] font-bold uppercase">---</span>
+                                </div>
                             </div>
                         </div>
-
                         <div class="mt-auto flex gap-2">
-                            <a id="btn-download" href="#" target="_blank" class="flex-1 bg-primary hover:bg-primary-dark text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-bold shadow-lg shadow-primary/20 active:scale-[0.98] border border-white/10 group">
+                            <a id="btn-download" href="#" target="_self" class="flex-1 bg-primary hover:bg-primary-dark text-white py-3 rounded-xl transition-all flex items-center justify-center gap-2 font-bold shadow-lg shadow-primary/20 active:scale-[0.98] border border-white/10 group">
                                 <span class="material-symbols-outlined group-hover:-translate-y-1 transition-transform text-lg">download</span>
                                 <span data-i18n="btn_download" class="text-sm">Baixar .osz</span>
                             </a>
 
-                            <a id="btn-website" href="#" target="_blank" class="size-[46px] flex-shrink-0 bg-[#2b2d42] hover:bg-white hover:text-black text-white rounded-xl transition-all flex items-center justify-center shadow-lg border border-white/10 group" title="Ver no site do osu!">
+                            <a id="btn-open" href="#" class="size-[46px] flex-shrink-0 bg-[#2b2d42] hover:bg-primary hover:text-white text-white rounded-xl transition-all flex items-center justify-center shadow-lg border border-white/10 group" title="Abrir no osu!">
+                                <span class="material-symbols-outlined group-hover:rotate-12 transition-transform">sports_esports</span>
+                            </a>
+
+                            <a id="btn-website" href="#" target="_blank" class="size-[46px] flex-shrink-0 bg-[#2b2d42] hover:bg-primary hover:text-white text-white rounded-xl transition-all flex items-center justify-center shadow-lg border border-white/10 group" title="Ver no site">
                                 <span class="material-symbols-outlined group-hover:scale-110 transition-transform">public</span>
                             </a>
                         </div>
