@@ -50,7 +50,10 @@ export const translations = {
         opt_loved: "Loved",
         opt_graveyard: "Cemitério",
         opt_pending: "Pendente",
-
+        
+        error_title: "Não encontrado",
+        error_not_found: "Não conseguimos achar nenhum mapa com esses filtros exatos. Tente suavizar os filtros ou mudar o status!",
+        btn_close: "Entendi",
     },
     en: {
         title: "OSU! ROULETTE",
@@ -102,5 +105,9 @@ export const translations = {
         opt_loved: "Loved",
         opt_graveyard: "Graveyard",
         opt_pending: "Pending",
+
+        error_title: "Not Found",
+        error_not_found: "We couldn't find any map with these exact filters. Try easing the filters or changing the status!",
+        btn_close: "Got it",
     }
 };

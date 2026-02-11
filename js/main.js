@@ -3,17 +3,14 @@ import { OsuDatabase } from './db.js';
 import { translations } from './languages.js';
 
 const db = new OsuDatabase();
-
 let currentLang = localStorage.getItem('osu_roulette_lang') || 'pt';
 
 const sfxSpin = new Audio('./assets/sounds/welcome-to-osu.mp3');
-
 sfxSpin.loop = true; 
 sfxSpin.volume = 0.5;
 
 let audioPreview = null;
 let isMuted = localStorage.getItem('audio_muted') === 'true';
-
 let currentRotation = 0;
 
 function applyLanguage(lang) {
@@ -35,12 +32,38 @@ function applyLanguage(lang) {
     
     const historyList = document.getElementById('history-list');
     if (historyList && historyList.children.length === 0) {
-        const emptyMsg = historyList.querySelector('p');
-        if(emptyMsg) emptyMsg.innerText = t.emptyHistory;
+        const emptyP = historyList.querySelector('p');
+        if (emptyP) emptyP.innerText = t.emptyHistory || "Nenhum drop recente.";
     }
 }
 
- 
+function showModal(titleKey, messageKey) {
+    const modal = document.getElementById('custom-modal');
+    const modalBox = document.getElementById('modal-box');
+    const elTitle = document.getElementById('modal-title');
+    const elMsg = document.getElementById('modal-message');
+    const elBtn = document.getElementById('modal-close');
+    
+    const lang = localStorage.getItem('osu_roulette_lang') || 'pt';
+    const t = translations[lang];
+
+    elTitle.innerText = t[titleKey] || titleKey || "Ops!";
+    elMsg.innerText = t[messageKey] || messageKey || "Erro desconhecido.";
+    elBtn.innerText = t['btn_close'] || "Ok";
+
+    modal.classList.remove('opacity-0', 'pointer-events-none');
+    modalBox.classList.remove('scale-90');
+    modalBox.classList.add('scale-100');
+}
+
+function hideModal() {
+    const modal = document.getElementById('custom-modal');
+    const modalBox = document.getElementById('modal-box');
+    
+    modal.classList.add('opacity-0', 'pointer-events-none');
+    modalBox.classList.remove('scale-100');
+    modalBox.classList.add('scale-90');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     renderizarHistorico();
@@ -60,9 +83,19 @@ document.addEventListener('DOMContentLoaded', () => {
         await db.clearHistory();
         renderizarHistorico();
     });
+
+    document.getElementById('modal-close').addEventListener('click', hideModal);
+    document.getElementById('modal-overlay').addEventListener('click', hideModal);
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') hideModal();
+        
+        if (e.code === 'Space' && document.activeElement.tagName !== 'INPUT') {
+            e.preventDefault(); 
+            girarRoleta();
+        }
+    });
 });
-
-
 
 async function girarRoleta() {
     const spinBtn = document.getElementById('spin-button');
@@ -81,47 +114,37 @@ async function girarRoleta() {
     };
 
     if (parseFloat(filtros.minSR) > parseFloat(filtros.maxSR)) {
-        showModal(translations[currentLang].err_min_max); 
+        showModal('error_title', 'err_min_max'); 
         return;
     }
 
     spinBtn.disabled = true;
-
-    if (mystery) mystery.classList.remove('opacity-0', 'pointer-events-none');
-
-    if (contentLayout) contentLayout.classList.add('opacity-0');
-
-    resultCard.style.boxShadow = 'none';
-    resultCard.style.borderColor = 'rgba(255,255,255,0.1)';
-
-    const imgBg = document.getElementById('map-bg');
-    if (imgBg) {
-        imgBg.src = "";
-        imgBg.style.opacity = '0'; 
-    }
-
-    document.getElementById('map-title').innerText = "...";
-    document.getElementById('map-artist').innerText = "";
-    document.getElementById('map-mapper').innerText = "";
-
+    
     if (audioPreview) {
         audioPreview.pause();
         audioPreview = null;
     }
 
-    if (!isMuted) {
-        sfxSpin.currentTime = 0;
-        sfxSpin.play().catch(() => {});
+    sfxSpin.muted = isMuted;
+    sfxSpin.currentTime = 0;
+    sfxSpin.play().catch(() => {});
+
+    if (contentLayout) contentLayout.classList.add('opacity-0');
+    if (mystery) mystery.classList.remove('opacity-0', 'pointer-events-none');
+    
+    resultCard.style.boxShadow = 'none';
+    resultCard.style.borderColor = 'rgba(255,255,255,0.1)';
+
+    const imgBg = document.getElementById('map-bg');
+    if (imgBg) {
+        imgBg.style.opacity = '0'; 
     }
 
-
     currentRotation += (1800 + Math.random() * 360); 
-    
     wheel.style.transition = "transform 4.5s cubic-bezier(0.15, 0, 0.15, 1)";
     wheel.style.transform = `rotate(${currentRotation}deg)`;
 
     const apiPromise = buscarBeatmap(filtros);
-    
     const animationPromise = new Promise(resolve => setTimeout(resolve, 4500));
 
     try {
@@ -129,19 +152,21 @@ async function girarRoleta() {
 
         sfxSpin.pause();
         sfxSpin.currentTime = 0;
-
-        spinBtn.disabled = false;
         
-        if (!mapa || mapa === "API_ERROR") {
-            alert("Nenhum mapa encontrado! Tente outros filtros.");
+        if (!mapa) {
+            showModal('error_title', 'error_not_found');
+            spinBtn.disabled = false;
             return;
         }
 
         atualizarInterface(mapa);
         playPreview(mapa.audio);
+        
         await db.saveHistory(mapa);
         renderizarHistorico();
         
+        spinBtn.disabled = false;
+
         if (typeof confetti === 'function') {
             confetti({ 
                 colors: ['#ff66aa', '#66ccff', '#ffcc22'],
@@ -152,25 +177,26 @@ async function girarRoleta() {
         }
 
     } catch (error) {
+        console.error(error);
         sfxSpin.pause();
         spinBtn.disabled = false;
-        console.error(error);
-        if (!mapa || mapa === "API_ERROR") {
-        showModal(translations[currentLang].err_not_found);
-        return;
-        }
+        showModal('error_title', 'error_not_found');
     }
 }
 
 function playPreview(url) {
-    if (isMuted) return;
+    if (audioPreview) {
+        audioPreview.pause();
+        audioPreview = null;
+    }
 
     audioPreview = new Audio(url);
     audioPreview.volume = 0.3;
+    audioPreview.muted = isMuted;
     
     const playPromise = audioPreview.play();
     if (playPromise !== undefined) {
-        playPromise.catch(() => console.log("Autoplay bloqueado. Usuário precisa clicar."));
+        playPromise.catch(() => {});
     }
     
     const btnPlay = document.getElementById('preview-btn');
@@ -180,6 +206,8 @@ function playPreview(url) {
     
     if (btnPlay) {
         btnPlay.onclick = () => {
+            if (!audioPreview) return;
+            
             if (audioPreview.paused) {
                 audioPreview.play();
                 if (icon) icon.innerText = "pause";
@@ -189,6 +217,10 @@ function playPreview(url) {
             }
         };
     }
+    
+    audioPreview.onended = () => {
+        if (icon) icon.innerText = "play_arrow";
+    };
 }
 
 function setupAudioControls() {
@@ -207,7 +239,16 @@ function setupAudioControls() {
         btn.addEventListener('click', () => {
             isMuted = !isMuted;
             localStorage.setItem('audio_muted', isMuted);
-            if (audioPreview) audioPreview.muted = isMuted;
+            
+            if (audioPreview) {
+                audioPreview.muted = isMuted;
+                if (!isMuted && audioPreview.paused) {
+                    audioPreview.play().catch(() => {});
+                }
+            }
+            
+            sfxSpin.muted = isMuted;
+            
             updateIcon();
         });
     }
@@ -216,9 +257,10 @@ function setupAudioControls() {
 async function renderizarHistorico() {
     const list = document.getElementById('history-list');
     const items = await db.getAllHistory();
+    const t = translations[currentLang];
     
     if (items.length === 0) {
-        list.innerHTML = `<p class="text-slate-500 col-span-full text-center text-sm">Nenhum drop recente.</p>`;
+        list.innerHTML = `<p class="text-slate-500 col-span-full text-center text-sm">${t?.emptyHistory || "Nenhum drop recente."}</p>`;
         return;
     }
 
