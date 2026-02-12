@@ -64,9 +64,6 @@ export async function buscarBeatmap(filtros) {
             statusToSearch = statusMap[filtros.status] || 'ranked';
         }
 
-        const logStatus = statusToSearch ? `[${statusToSearch}]` : "[Padrão]";
-        console.log(`Tentativa ${attempt + 1}: Status ${logStatus} | Query: "${filtros.query}" | Pág: ${pageToTry}`);
-
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000); 
@@ -151,7 +148,6 @@ export async function buscarBeatmap(filtros) {
             });
 
             if (candidatos.length > 0) {
-                console.log(`Sucesso! ${candidatos.length} mapas encontrados.`);
                 const mapSet = candidatos[Math.floor(Math.random() * candidatos.length)];
                 return normalizeBeatmap(mapSet, filtros.minSR, filtros.maxSR, filtros.query, filtros.style);
             }
