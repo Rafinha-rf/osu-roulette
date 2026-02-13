@@ -4,9 +4,12 @@ import { translations } from './languages.js';
 
 const db = new OsuDatabase();
 let currentLang = localStorage.getItem('osu_roulette_lang') || 'pt';
+let isSpinning = false;
+
+const SPIN_DURATION_MS = 10000;
 
 const sfxSpin = new Audio('./assets/sounds/welcome-to-osu.mp3');
-sfxSpin.loop = true; 
+sfxSpin.loop = false; 
 sfxSpin.volume = 0.5;
 
 let audioPreview = null;
@@ -98,12 +101,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function girarRoleta() {
+    if (isSpinning) return;
+
+    isSpinning = true;
     const spinBtn = document.getElementById('spin-button');
-    const wheel = document.getElementById('wheel');
-    const resultCard = document.getElementById('result-card');
-    const mystery = document.getElementById('mystery-overlay');
-    const contentLayout = document.getElementById('content-layout');
-    
+    spinBtn.disabled = true;
+
     const filtros = {
         query: document.getElementById('search-filter').value,
         mode: document.getElementById('mode-filter').value,
@@ -112,22 +115,29 @@ async function girarRoleta() {
         minSR: document.getElementById('stars-min').value,
         maxSR: document.getElementById('stars-max').value
     };
-
+    
     if (parseFloat(filtros.minSR) > parseFloat(filtros.maxSR)) {
-        showModal('error_title', 'err_min_max'); 
+        showModal('error_title', 'err_min_max');
+        isSpinning = false; 
+        spinBtn.disabled = false;
         return;
     }
 
-    spinBtn.disabled = true;
-    
     if (audioPreview) {
         audioPreview.pause();
         audioPreview = null;
     }
 
     sfxSpin.muted = isMuted;
-    sfxSpin.currentTime = 0;
-    sfxSpin.play().catch(() => {});
+    if (!isMuted) {
+        sfxSpin.currentTime = 0;
+        sfxSpin.play().catch(() => {});
+    }
+
+    const wheel = document.getElementById('wheel');
+    const resultCard = document.getElementById('result-card');
+    const mystery = document.getElementById('mystery-overlay');
+    const contentLayout = document.getElementById('content-layout');
 
     if (contentLayout) contentLayout.classList.add('opacity-0');
     if (mystery) mystery.classList.remove('opacity-0', 'pointer-events-none');
@@ -140,12 +150,13 @@ async function girarRoleta() {
         imgBg.style.opacity = '0'; 
     }
 
-    currentRotation += (1800 + Math.random() * 360); 
-    wheel.style.transition = "transform 4.5s cubic-bezier(0.15, 0, 0.15, 1)";
+    currentRotation += (3080 + Math.random() * 360); 
+    
+    wheel.style.transition = `transform ${SPIN_DURATION_MS / 1000}s cubic-bezier(0.15, 0, 0.15, 1)`;
     wheel.style.transform = `rotate(${currentRotation}deg)`;
 
     const apiPromise = buscarBeatmap(filtros);
-    const animationPromise = new Promise(resolve => setTimeout(resolve, 4500));
+    const animationPromise = new Promise(resolve => setTimeout(resolve, SPIN_DURATION_MS));
 
     try {
         const [mapa] = await Promise.all([apiPromise, animationPromise]);
@@ -155,7 +166,6 @@ async function girarRoleta() {
         
         if (!mapa) {
             showModal('error_title', 'error_not_found');
-            spinBtn.disabled = false;
             return;
         }
 
@@ -165,8 +175,6 @@ async function girarRoleta() {
         await db.saveHistory(mapa);
         renderizarHistorico();
         
-        spinBtn.disabled = false;
-
         if (typeof confetti === 'function') {
             confetti({ 
                 colors: ['#ff66aa', '#66ccff', '#ffcc22'],
@@ -179,8 +187,10 @@ async function girarRoleta() {
     } catch (error) {
         console.error(error);
         sfxSpin.pause();
-        spinBtn.disabled = false;
         showModal('error_title', 'error_not_found');
+    } finally {
+        isSpinning = false; 
+        spinBtn.disabled = false;
     }
 }
 
@@ -247,7 +257,9 @@ function setupAudioControls() {
                 }
             }
             
-            sfxSpin.muted = isMuted;
+            if (isSpinning && !sfxSpin.paused) {
+                 sfxSpin.muted = isMuted;
+            }
             
             updateIcon();
         });
@@ -259,24 +271,38 @@ async function renderizarHistorico() {
     const items = await db.getAllHistory();
     const t = translations[currentLang];
     
+    const defaultCover = './assets/404-not-found.jpg';
+    
     if (items.length === 0) {
         list.innerHTML = `<p class="text-slate-500 col-span-full text-center text-sm">${t?.emptyHistory || "Nenhum drop recente."}</p>`;
         return;
     }
+    
+    list.innerHTML = items.map(mapa => {
+        const imgUrl = mapa.cover || defaultCover;
 
-    list.innerHTML = items.map(mapa => `
-        <a href="${mapa.url}" target="_blank" class="group relative aspect-video rounded-xl overflow-hidden border border-white/5 bg-card-dark hover:border-[${mapa.diffColor}] transition-all shadow-lg hover:shadow-[0_0_15px_${mapa.diffColor}40]">
-            <img src="${mapa.cover}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity">
-            <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-            
-            <div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm" style="background-color: ${mapa.diffColor}">
-                ${parseFloat(mapa.sr).toFixed(2)} ★
-            </div>
-            
-            <div class="absolute bottom-3 left-3 right-3">
-                <p class="text-xs sm:text-sm text-white font-black truncate drop-shadow-md">${mapa.title}</p>
-                <p class="text-[10px] text-slate-300 truncate">${mapa.artist}</p>
-            </div>
-        </a>
-    `).join('');
+        return `
+            <a href="${mapa.url}" target="_blank" 
+               class="group relative aspect-video rounded-xl overflow-hidden border border-white/5 bg-card-dark transition-all shadow-lg"
+               style="--hover-color: ${mapa.diffColor}"
+               onmouseover="this.style.borderColor=this.style.getPropertyValue('--hover-color'); this.style.boxShadow='0 0 15px ' + this.style.getPropertyValue('--hover-color') + '40'"
+               onmouseout="this.style.borderColor='rgba(255,255,255,0.05)'; this.style.boxShadow='none'">
+                
+                <img src="${imgUrl}" 
+                     onerror="this.onerror=null; this.src='${defaultCover}';" 
+                     class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity">
+                
+                <div class="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+                
+                <div class="absolute top-2 right-2 px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm" style="background-color: ${mapa.diffColor}">
+                    ${parseFloat(mapa.sr).toFixed(2)} ★
+                </div>
+                
+                <div class="absolute bottom-3 left-3 right-3">
+                    <p class="text-xs sm:text-sm text-white font-black truncate drop-shadow-md">${mapa.title}</p>
+                    <p class="text-[10px] text-slate-300 truncate">${mapa.artist}</p>
+                </div>
+            </a>
+        `;
+    }).join('');
 }

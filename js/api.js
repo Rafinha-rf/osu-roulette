@@ -1,7 +1,22 @@
 import { translations } from './languages.js'; 
 
-const API_BASE = 'https://api.nerinyan.moe/search';
+const MIRRORS = [
+    'https://osu.direct/api/v2/search',
+    'https://catboy.best/api/v2/search'
+];
 
+const DEFAULT_COVER = './assets/404-not-found.jpg';
+
+const sessionHistory = new Set();
+
+const MAPPER_POOLS = {
+    'farm': ['Sotarks', 'Browiec', 'Reform', 'Log Off Now', 'A r M i N', 'Nevo', 'Monstrata', 'Taeyang', 'Kowari', 'Lami', 'Fieryrage', 'Kroytz', 'Andrea', 'Lasse', 'Xexxar'],
+    'stream': ['Mazzerin', 'Seni', 'GoldenWolf', 'Shinsc', 'Blue Dragon', 'pkk', 'eiri-', 'Bokamin', 'ItsWinter', 'Chekito', 'Sotarks'],
+    'jump': ['Sotarks', 'Nevo', 'Reform', 'Smokelind', 'Kymxh', 'Lohctes', 'Shmiklak', 'Ameth Rian', 'Gero', 'FuJu'],
+    'tech': ['Hollow Wings', 'NeilPerry', 'Mir', 'ProfessionalBox', 'val0108', 'rrtyui', 'ktgster', 'fanzhen0019', 'Akali', 'Skystar', 'Camellia'],
+    'speed': ['Aricin', 'Maddy', 'Seni', 'Lmt', 'TheKingHenry', 'Kroytz', 'Ekoro', 'Ciyus Miapah'],
+    'stamina': ['Mazzerin', 'Seni', 'Aurealu', 'Idke', 'Bokamin', 'TheKingHenry']
+};
 
 export function getDifficultyColor(sr) {
     const stars = parseFloat(sr);
@@ -13,7 +28,6 @@ export function getDifficultyColor(sr) {
     return { color: "#000000", name: "Expert+", text: "white" };
 }
 
-
 const STATUS_CONFIG = {
     'ranked':    { icon: 'check_circle', color: '#4ade80', key: 'opt_ranked' },
     'approved':  { icon: 'verified',     color: '#4ade80', key: 'opt_ranked' },
@@ -21,39 +35,66 @@ const STATUS_CONFIG = {
     'loved':     { icon: 'favorite',     color: '#ff66aa', key: 'opt_loved' },
     'graveyard': { icon: 'sentiment_very_dissatisfied', color: '#94a3b8', key: 'opt_graveyard' },
     'pending':   { icon: 'hourglass_empty', color: '#facc15', key: 'opt_pending' }, 
-    'wip':       { icon: 'construction',    color: '#facc15', key: 'opt_pending' } 
+    'wip':       { icon: 'construction',    color: '#facc15', key: 'opt_pending' },
+    1: { icon: 'check_circle', color: '#4ade80', key: 'opt_ranked' },
+    2: { icon: 'verified',     color: '#4ade80', key: 'opt_ranked' },
+    3: { icon: 'verified',     color: '#60a5fa', key: 'opt_ranked' },
+    4: { icon: 'favorite',     color: '#ff66aa', key: 'opt_loved' },
+    0: { icon: 'hourglass_empty', color: '#facc15', key: 'opt_pending' },
+    '-2': { icon: 'sentiment_very_dissatisfied', color: '#94a3b8', key: 'opt_graveyard' }
+};
+
+const STATUS_TO_INT = { 'ranked': 1, 'loved': 4, 'pending': 0, 'graveyard': -2, 'all': null };
+
+function obterAnoMapSet(mapSet) {
+    const keys = ['submitted_date', 'SubmittedDate', 'ranked_date', 'approved_date', 'last_updated'];
+    for (const key of keys) {
+        const val = mapSet[key];
+        if (val) {
+            let year = 9999;
+            if (typeof val === 'string') {
+                const d = new Date(val);
+                if (!isNaN(d.getTime())) year = d.getFullYear();
+            } else if (typeof val === 'number') {
+                const ts = val < 10000000000 ? val * 1000 : val;
+                year = new Date(ts).getFullYear();
+            }
+            if (year > 1990 && year < 3000) return year;
+        }
+    }
+    return 9999;
 }
 
 export async function buscarBeatmap(filtros) {
-    const maxAttempts = 10;
+    const maxAttempts = 15;
     let attempt = 0;
+    let mirrorIndex = 0; 
     
     const statusMap = { 'ranked': 'ranked', 'loved': 'loved', 'pending': 'pending', 'graveyard': 'graveyard'};
 
     while (attempt < maxAttempts) {
+        if (attempt > 0) await new Promise(r => setTimeout(r, 100));
+
+        let currentApi = MIRRORS[mirrorIndex];
         const temQuery = filtros.query && filtros.query.trim() !== "";
+        
         let pageToTry;
+        let maxPages = 50; 
+        
+        if (filtros.style === 'old') {
+            maxPages = 20; 
+        }
 
         if (temQuery) {
             pageToTry = 0; 
-        } 
-        else if (filtros.style && filtros.style !== 'all') {
-            pageToTry = attempt;
-        } 
-        else {
-            pageToTry = Math.floor(Math.random() * 50);
+        } else {
+            pageToTry = Math.floor(Math.random() * maxPages);
         }
 
         let statusToSearch;
 
         if (filtros.status === 'all') {
-            const statusRoulette = [
-                'ranked', 'ranked',
-                'graveyard', 'graveyard',
-                'loved',
-                'pending'
-            ];
-
+            const statusRoulette = ['ranked', 'ranked', 'graveyard', 'graveyard', 'loved', 'pending'];
             if (temQuery) {
                  const statusList = ['ranked', 'graveyard', 'loved', 'pending', 'graveyard', 'ranked'];
                  statusToSearch = statusList[attempt % statusList.length];
@@ -64,60 +105,96 @@ export async function buscarBeatmap(filtros) {
             statusToSearch = statusMap[filtros.status] || 'ranked';
         }
 
+        let finalStatus = STATUS_TO_INT[statusToSearch];
+
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 15000); 
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
 
             let queryParts = [];
-            if (temQuery) queryParts.push(filtros.query);
-
-            if (filtros.style && filtros.style !== 'all') {
+            const params = new URLSearchParams();
+            
+            if (temQuery) {
+                queryParts.push(filtros.query);
+            }
+            else if (filtros.style && filtros.style !== 'all') {
                 switch (filtros.style) {
-                    case 'farm': queryParts.push('farm'); break;
-                    case 'stream': queryParts.push('stream'); break;
-                    case 'jump': queryParts.push('jump'); break;
-                    case 'tech': queryParts.push('tech'); break;
-                    case 'speed': queryParts.push('speed'); break;
-                    case 'stamina': queryParts.push('stamina'); break;
-                    case 'old': queryParts.push('year<=2012'); break;
-                    case 'long': queryParts.push('length>=240'); break;
+                    case 'farm': 
+                    case 'stream':
+                    case 'jump':
+                    case 'tech':
+                    case 'speed':
+                    case 'stamina':
+                        const pool = MAPPER_POOLS[filtros.style];
+                        if (pool) {
+                            const randomMapper = pool[Math.floor(Math.random() * pool.length)];
+                            queryParts.push(`creator="${randomMapper}"`);
+                        }
+                        break;
+                    
+                    case 'old': 
+                        params.append('sort', 'id:asc');
+                        
+                        if (!filtros.status || filtros.status === 'all' || finalStatus === -2) {
+                            if (Math.random() > 0.2) finalStatus = 1; 
+                        }
+                        break;
+
+                    case 'long': 
+                        break;
                 }
             }
             
-            const params = new URLSearchParams({
-                q: queryParts.join(' '),
-                m: filtros.mode || 0,
-                p: pageToTry,
-                pageSize: 50
-            });
-
-            if (statusToSearch) {
-                params.append('s', statusToSearch);
+            if (queryParts.length > 0) {
+                params.append('q', queryParts.join(' '));
             }
+            
+            params.append('mode', filtros.mode || 0);
+            if (finalStatus !== null && finalStatus !== undefined) params.append('status', finalStatus);
+            
+            params.append('p', pageToTry);
+            params.append('pageSize', 50);
 
-            const response = await fetch(`${API_BASE}?${params.toString()}`, { signal: controller.signal });
+            const response = await fetch(`${currentApi}?${params.toString()}`, { signal: controller.signal });
             clearTimeout(timeoutId);
 
-            if (!response.ok) { attempt++; continue; }
+            if (!response.ok) { 
+                mirrorIndex = (mirrorIndex + 1) % MIRRORS.length; 
+                await new Promise(r => setTimeout(r, 200));
+                continue; 
+            }
             
             const json = await response.json();
             
+            if (json.error) {
+                mirrorIndex = (mirrorIndex + 1) % MIRRORS.length; 
+                await new Promise(r => setTimeout(r, 200));
+                continue;
+            }
+
             if (!json || json.length === 0) {
-
                 if (temQuery && filtros.status !== 'all') break; 
-                
-                if (!temQuery && filtros.style !== 'all') break;
-
+                await new Promise(r => setTimeout(r, 100));
                 attempt++;
                 continue;
             }
 
             const candidatos = json.filter(mapSet => {
                 if (!mapSet.beatmaps) return false;
-                
+                if (['farm', 'stream', 'jump', 'tech', 'speed', 'stamina'].includes(filtros.style)) {
+                    const pool = MAPPER_POOLS[filtros.style];
+                    const creatorName = mapSet.creator.toLowerCase();
+                    const poolLower = pool.map(m => m.toLowerCase());
+                    
+                    if (!poolLower.includes(creatorName)) return false; 
+                }
+
                 if (filtros.style === 'old') {
-                    const dateStr = mapSet.approved_date || mapSet.last_updated;
-                    if (dateStr && new Date(dateStr).getFullYear() > 2012) return false;
+                    const setId = mapSet.id || mapSet.beatmapset_id || 999999;
+                    if (setId > 100000) return false;
+
+                    const ano = obterAnoMapSet(mapSet);
+                    if (ano > 2012) return false;
                 }
 
                 const hasValidDiff = mapSet.beatmaps.some(diff => {
@@ -126,9 +203,7 @@ export async function buscarBeatmap(filtros) {
                     const matchMode = diff.mode_int == (filtros.mode || 0);
                     
                     if (!matchSR || !matchMode) return false;
-
                     if (filtros.style === 'long' && diff.total_length < 240) return false;
-
                     return true;
                 });
 
@@ -140,27 +215,29 @@ export async function buscarBeatmap(filtros) {
                     const matchArtist = mapSet.artist.toLowerCase().includes(q);
                     const matchTitle = mapSet.title.toLowerCase().includes(q);
                     const matchDiffName = mapSet.beatmaps.some(diff => diff.version.toLowerCase().includes(q));
-                    
                     if (!matchCreator && !matchArtist && !matchTitle && !matchDiffName) return false;
                 }
-
                 return true;
             });
 
-            if (candidatos.length > 0) {
-                const mapSet = candidatos[Math.floor(Math.random() * candidatos.length)];
+            const candidatosNovos = candidatos.filter(m => !sessionHistory.has(m.id));
+
+            if (candidatosNovos.length > 0) {
+                const mapSet = candidatosNovos[Math.floor(Math.random() * candidatosNovos.length)];
+                sessionHistory.add(mapSet.id);
                 return normalizeBeatmap(mapSet, filtros.minSR, filtros.maxSR, filtros.query, filtros.style);
             }
             
             attempt++;
 
         } catch (error) {
-            console.warn(`Erro na tentativa ${attempt}:`, error);
+            mirrorIndex = (mirrorIndex + 1) % MIRRORS.length;
+            await new Promise(r => setTimeout(r, 300));
             attempt++;
         }
     }
 
-    return null; 
+    return null;
 }
 
 function normalizeBeatmap(mapSet, minSR, maxSR, query = "", style = "") {
@@ -180,14 +257,15 @@ function normalizeBeatmap(mapSet, minSR, maxSR, query = "", style = "") {
         targetDiff = validDiffs.find(d => d.version.toLowerCase().includes(q));
     }
 
-    if (!targetDiff && validDiffs.length > 0) {
-        targetDiff = validDiffs[0];
-    }
-
+    if (!targetDiff && validDiffs.length > 0) targetDiff = validDiffs[0];
     if (!targetDiff) targetDiff = mapSet.beatmaps[0];
 
     const diffInfo = getDifficultyColor(targetDiff.difficulty_rating);
-    const coverUrl = `https://assets.ppy.sh/beatmaps/${mapSet.id}/covers/cover.jpg`;
+    
+    let coverUrl = `https://assets.ppy.sh/beatmaps/${mapSet.id}/covers/cover.jpg`;
+    if (mapSet.covers && mapSet.covers.cover) {
+        coverUrl = mapSet.covers.cover;
+    }
     
     return {
         id: mapSet.id,
@@ -196,7 +274,7 @@ function normalizeBeatmap(mapSet, minSR, maxSR, query = "", style = "") {
         artist: mapSet.artist,
         mapper: mapSet.creator, 
         cover: coverUrl,
-        card: `https://assets.ppy.sh/beatmaps/${mapSet.id}/covers/card.jpg`,
+        card: mapSet.covers?.card || `https://assets.ppy.sh/beatmaps/${mapSet.id}/covers/card.jpg`,
         audio: `https://b.ppy.sh/preview/${mapSet.id}.mp3`,
         bpm: mapSet.bpm,
         length: formatLength(targetDiff.total_length),
@@ -206,7 +284,7 @@ function normalizeBeatmap(mapSet, minSR, maxSR, query = "", style = "") {
         diffName: targetDiff.version,
         status: mapSet.status,
         url: `https://osu.ppy.sh/beatmapsets/${mapSet.id}`,
-        download: `https://api.nerinyan.moe/d/${mapSet.id}`,
+        download: `https://catboy.best/d/${mapSet.id}`,
         directLink: `osu://b/${targetDiff.id}` 
     };
 }
@@ -265,7 +343,6 @@ export function atualizarInterface(mapa) {
 
     btnDl.href = mapa.download;
     if (btnWeb) btnWeb.href = mapa.url;
-    
     if (btnOpen) btnOpen.href = mapa.directLink;
 
     const downloadingImage = new Image();
@@ -274,9 +351,7 @@ export function atualizarInterface(mapa) {
     downloadingImage.onload = function() {
         imgBg.src = this.src;
         imgBg.style.opacity = '1'; 
-        
         if (mystery) mystery.classList.add('opacity-0', 'pointer-events-none');
-        
         if (contentLayout) {
             contentLayout.classList.remove('opacity-0');
             const card = document.getElementById('result-card');
@@ -286,7 +361,7 @@ export function atualizarInterface(mapa) {
     };
 
     downloadingImage.onerror = function() {
-        imgBg.src = "https://osu.ppy.sh/assets/images/avatar-guest.8a2af920.png";
+        imgBg.src = DEFAULT_COVER; 
         imgBg.style.opacity = '1';
         if (mystery) mystery.classList.add('opacity-0', 'pointer-events-none');
         if (contentLayout) contentLayout.classList.remove('opacity-0');

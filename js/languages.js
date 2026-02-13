@@ -23,7 +23,7 @@ export const translations = {
         style_tech: "Tech / Alternado",
         style_speed: "Speed / Burst",
         style_stamina: "Stamina",
-        style_old: "Old School (2007-12)",
+        style_old: "Old School",
         style_long: "Marathon (+4min)",
 
 
@@ -79,7 +79,7 @@ export const translations = {
         style_tech: "Tech / Alternate",
         style_speed: "Speed / Burst",
         style_stamina: "Stamina",
-        style_old: "Old School (2007-12)",
+        style_old: "Old School",
         style_long: "Marathon (+4min)",
 
         spinBtn: "SPIN!",
