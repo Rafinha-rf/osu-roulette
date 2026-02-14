@@ -148,6 +148,17 @@ export async function buscarBeatmap(filtros) {
             if (queryParts.length > 0) {
                 params.append('q', queryParts.join(' '));
             }
+
+            if (filtros.style !== 'old' && !temQuery) {
+                const sortOptions = [
+                    'id:desc',
+                    'plays:desc',
+                    'favourites:desc',
+                    'rating:desc'
+                ];
+                const randomSort = sortOptions[Math.floor(Math.random() * sortOptions.length)];
+                params.append('sort', randomSort);
+            }
             
             params.append('mode', filtros.mode || 0);
             if (finalStatus !== null && finalStatus !== undefined) params.append('status', finalStatus);
