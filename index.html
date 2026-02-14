@@ -117,9 +117,9 @@
         <div class="osu-triangle t-8"></div>
     </div>    
 
-    <header class="w-full max-w-[1500px] py-6 px-4 md:px-6 flex flex-col xl:flex-row items-center justify-between gap-6 relative z-50">
+    <header class="w-full max-w-[1500px] py-6 px-4 md:px-6 flex flex-col xl:flex-row xl:flex-wrap 2xl:flex-nowrap items-center justify-between gap-6 relative z-50">
             
-        <div class="w-full flex justify-end xl:w-auto xl:order-3 items-center gap-3 z-[100]">
+        <div class="w-full flex justify-end xl:w-auto xl:order-2 2xl:order-3 items-center gap-3 z-[100] shrink-0">
             <div class="flex gap-2 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/5 shadow-lg">
                 <button onclick="setLanguage('pt')" class="hover:scale-110 transition-transform opacity-80 hover:opacity-100 grayscale hover:grayscale-0 text-lg">🇧🇷</button>
                 <button onclick="setLanguage('en')" class="hover:scale-110 transition-transform opacity-80 hover:opacity-100 grayscale hover:grayscale-0 text-lg">🇺🇸</button>
@@ -139,7 +139,7 @@
             </p>
         </div>
         
-        <div class="w-full xl:w-auto xl:flex-1 flex flex-wrap justify-center gap-3 items-end relative z-10 mt-4 xl:mt-0 xl:order-2">
+        <div class="w-full xl:w-full 2xl:w-auto 2xl:flex-1 flex flex-wrap justify-center gap-3 items-end relative z-10 xl:order-3 2xl:order-2">
             
             <div class="flex flex-col gap-1 w-full sm:w-auto flex-1 min-w-[160px] max-w-[200px]">
                 <label data-i18n="searchLabel" class="text-[10px] font-extrabold text-primary uppercase tracking-widest ml-1 drop-shadow-sm">Mapper / Search</label>
